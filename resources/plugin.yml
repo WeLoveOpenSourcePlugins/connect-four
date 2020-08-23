@@ -1,0 +1,7 @@
+name: connect-four
+main: com.github.johnnyjayjay.connect4.ConnectFourPlugin
+version: "0.1.0-SNAPSHOT"
+
+commands:
+  clj:
+    description: Run a command in Clojure.
