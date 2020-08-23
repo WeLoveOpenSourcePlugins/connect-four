@@ -1,6 +1,6 @@
 # connect-four
 
-A Spigot plugin to... well, that part is up to you.
+A Spigot plugin to play inventory-[connect four](https://en.wikipedia.org/wiki/Connect_Four) against others.
 
 ## Usage
 
