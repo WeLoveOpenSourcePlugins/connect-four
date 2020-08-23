@@ -6,8 +6,9 @@
            (org.bukkit.enchantments Enchantment)))
 
 (defn item-stack
+  "Creates an `ItemStack` from the given specification map."
   [{{:keys [display-name lore flags enchants] :as meta} :meta
-    :keys                                                            [type durability amount]}]
+    :keys [type durability amount]}]
   (cond-doto (ItemStack. ^Material type)
              meta (.setItemMeta (cond-doto (.getItemMeta (ItemStack. ^Material type))
                                            display-name (.setDisplayName display-name)
@@ -43,7 +44,9 @@
       (assoc :enchants {Enchantment/SILK_TOUCH 1})
       (assoc-in [:meta :flags] [ItemFlag/HIDE_ENCHANTS])))
 
-(defn prepare-items [{:keys [players] :as game}]
+(defn prepare-items
+  "Takes a game and associates relevant `ItemStack` objects for rendering."
+  [{:keys [players] :as game}]
   (let [discs (map disc players (vals glass-colors))
         glowing-discs (map add-glow discs)
         item-map (comp (partial zipmap players) (partial map item-stack))]
@@ -54,7 +57,7 @@
 
 (def row-number 6)
 
-(defn ^Inventory create-inventory []
+(defn create-inventory []
   (Bukkit/createInventory nil (int (* row-size row-number)) "Connect Four (close to quit)"))
 
 (defn position->slot [[y x]]
@@ -70,7 +73,8 @@
     (run! #(aset contents (position->slot (:position %)) (discs (:owner %))) (filter occupied? (flatten fields)))
     contents))
 
-(defn highlight-win-line! [{:keys [win-discs]} ^"[Ljava.lang.Object;" contents winner win-line]
+(defn highlight-win-line!
+  [{:keys [win-discs]} ^"[Ljava.lang.Object;" contents winner win-line]
   (let [glowing-disc (win-discs winner)]
     (run! #(aset contents (position->slot (:position %)) glowing-disc) win-line)
     contents))

@@ -34,7 +34,11 @@
 (def open-inventory (memfn ^HumanEntity openInventory ^Inventory inventory))
 (def set-contents (memfn ^Inventory setContents ^"[Lorg.bukkit.inventory.ItemStack;" items))
 
-(defn end-game [close-chan click-chan players message]
+(defn end-game!
+  "Ends the game by 'waiting' for all players to close the inventory, then closing the input channels.
+
+  Also sends a message to the players."
+  [close-chan click-chan players message]
   (let [final-close-chan (chan 1 (partition-all (count players)))]
     (pipe close-chan final-close-chan)
     (take! final-close-chan
@@ -44,7 +48,9 @@
   (runsync plugin
     (run! #(send-message % message) players)))
 
-(defn start-game [players]
+(defn start-game
+  "Starts a game for the given `Player`s."
+  [players]
   (let [player-uuids (set (map player->uuid players))
         player-names (map player->name players)
         game-inventory (inv/create-inventory)
@@ -59,15 +65,15 @@
       (let [{:keys [state] :as assessment} (connect4/assess game)
             new-inv-content (inv/render game)]
         (runsync plugin
-          (.setContents game-inventory new-inv-content))
+          (set-contents game-inventory new-inv-content))
         (case state
-          :tied (end-game close-chan click-chan players "§aIt's a tie!")
+          :tied (end-game! close-chan click-chan players "§aIt's a tie!")
 
           :won
           (let [{:keys [winner win-line]} assessment]
             (runsync plugin
-              (.setContents game-inventory (inv/highlight-win-line! game new-inv-content winner win-line)))
-            (end-game close-chan click-chan players (str "§6" winner "§a wins the game!")))
+              (set-contents game-inventory (inv/highlight-win-line! game new-inv-content winner win-line)))
+            (end-game! close-chan click-chan players (str "§6" winner "§a wins the game!")))
 
           :continue
           (let [play-chan (chan 1 (comp (filter (comp #{current} player->name event->player))
@@ -81,7 +87,7 @@
                          (recur (connect4/play game column)))
               close-chan (do
                            (close! play-chan)
-                           (end-game close-chan click-chan players "§cThe game was aborted by one of the players.")))))))))
+                           (end-game! close-chan click-chan players "§cThe game was aborted by one of the players.")))))))))
 
 (defn -onCommand [this ^CommandSender sender command label args]
   (if (instance? Player sender)
