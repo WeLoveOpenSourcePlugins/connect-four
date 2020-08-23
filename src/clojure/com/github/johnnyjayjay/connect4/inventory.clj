@@ -1,20 +1,20 @@
 (ns com.github.johnnyjayjay.connect4.inventory
-  (:require [com.github.johnnyjayjay.connect4.util :refer [cond-doto]])
-  (:import (org.bukkit.inventory ItemStack ItemFlag)
+  (:require [com.github.johnnyjayjay.connect4.util :refer [cond-doto]]
+            [com.github.johnnyjayjay.connect4.game :refer [occupied?]])
+  (:import (org.bukkit.inventory ItemStack ItemFlag Inventory)
            (org.bukkit Material Bukkit)
            (org.bukkit.enchantments Enchantment)))
 
 (defn item-stack
-  [{{:keys [display-name lore flags unbreakable? enchants] :as meta} :meta
+  [{{:keys [display-name lore flags enchants] :as meta} :meta
     :keys                                                            [type durability amount]}]
   (cond-doto (ItemStack. ^Material type)
-             amount (.setAmount (int amount))
-             durability (.setDurability (short durability))
              meta (.setItemMeta (cond-doto (.getItemMeta (ItemStack. ^Material type))
                                            display-name (.setDisplayName display-name)
                                            lore (.setLore lore)
-                                           flags (.addItemFlags (to-array flags))
-                                           unbreakable? (.setUnbreakable true)))
+                                           flags (.addItemFlags (into-array ItemFlag flags))))
+             amount (.setAmount (int amount))
+             durability (.setDurability (short durability))
              enchants (.addUnsafeEnchantments enchants)))
 
 (def glass-colors
@@ -54,7 +54,7 @@
 
 (def row-number 6)
 
-(defn create-inventory []
+(defn ^Inventory create-inventory []
   (Bukkit/createInventory nil (int (* row-size row-number)) "Connect Four (close to quit)"))
 
 (defn position->slot [[y x]]
@@ -64,16 +64,13 @@
   (take row-number (range column Long/MAX_VALUE row-size)))
 
 (defn render [{:keys [fields discs drop-item border-item]}]
-  (let [contents (make-array ItemStack (* row-size row-number))]
-    (doseq [drop-slot (range 1 (dec row-size))]
-      (aset contents drop-slot drop-item))
-    (doseq [border-slot (concat (column-slots 0) (column-slots 8))]
-      (aset contents border-slot border-item))
-    (doseq [{:keys [owner position]} (flatten fields)]
-      (aset contents (position->slot position) (discs owner)))
+  (let [^"[Ljava.lang.Object;" contents (make-array ItemStack (* row-size row-number))]
+    (run! #(aset contents % drop-item) (range 1 (dec row-size)))
+    (run! #(aset contents % border-item) (concat (column-slots 0) (column-slots 8)))
+    (run! #(aset contents (position->slot (:position %)) (discs (:owner %))) (filter occupied? (flatten fields)))
     contents))
 
-(defn highlight-win-line [{:keys [win-discs]} contents winner win-line]
+(defn highlight-win-line! [{:keys [win-discs]} ^"[Ljava.lang.Object;" contents winner win-line]
   (let [glowing-disc (win-discs winner)]
-    (doseq [{:keys [position]} win-line]
-      (aset contents (position->slot position) glowing-disc))))
+    (run! #(aset contents (position->slot (:position %)) glowing-disc) win-line)
+    contents))

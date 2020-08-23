@@ -1,10 +1,14 @@
 (ns com.github.johnnyjayjay.connect4.util
+  "Utility macros and functions."
   (:import (org.bukkit Bukkit)
            (org.bukkit.plugin Plugin EventExecutor)
-           (org.bukkit.event Listener EventPriority HandlerList))
-  (:require [clojure.core.async :refer [chan put!]]))
+           (org.bukkit.event Listener EventPriority HandlerList)
+           (org.bukkit.scheduler BukkitScheduler))
+  (:require [clojure.core.async :refer [chan put! close!]]))
 
-(defmacro cond-doto [x & clauses]
+(defmacro cond-doto
+  "`cond-doto` is to `doto` what `cond->` is to `->`."
+  [x & clauses]
   (let [x-val (gensym "x")]
     `(let [~x-val ~x]
        (do
@@ -16,17 +20,28 @@
                 (partition 2 clauses))
          ~x-val))))
 
-(defmacro runsync [plugin & body]
+(def run-task (memfn ^BukkitScheduler runTask ^Plugin plugin ^Runnable runnable))
+
+(defmacro runsync
+  "Executes the given body on the server thread and returns a channel that receives the result when it's done."
+  [plugin & body]
   `(let [result-channel# (chan)]
-     (.runTask
+     (run-task
        (Bukkit/getScheduler)
-       ^Plugin ~plugin
-       ^Runnable (fn [] (put! result-channel# (do ~@body))))
+       ~plugin
+       (fn []
+         (if-let [result# (do ~@body)]
+           (put! result-channel# result#)
+           (close! result-channel#))))
      result-channel#))
 
 (def listener-stub (reify Listener))
 
-(defn event-executor [event-type channel]
+(defn event-executor
+  "Returns an `EventExecutor` that puts events of the given type on the given channel.
+
+  Unregisters the listener in question when the channel is closed."
+  [event-type channel]
   (reify EventExecutor
     (execute [this listener event]
       (when (= (type event) event-type)

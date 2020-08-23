@@ -12,4 +12,5 @@
   :java-source-paths ["src/java"]
   :profiles {:provided {:dependencies [[org.spigotmc/spigot-api "1.8.8-R0.1-SNAPSHOT" :scope "runtime"]]}}
   :repl-options {:init-ns com.github.johnnyjayjay.connect_four.logic.game}
-  :aot :all)
+  :aot :all
+  :global-vars {*warn-on-reflection* true})

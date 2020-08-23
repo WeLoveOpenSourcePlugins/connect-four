@@ -8,9 +8,7 @@
 
 (declare plugin)
 
-(set! *warn-on-reflection* true)
-
-(defn -onLoad [^JavaPlugin this]
+(defn -onLoad [this]
   (alter-var-root #'plugin (constantly this)))
 
 (defn -onEnable [^JavaPlugin this]
