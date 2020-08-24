@@ -5,5 +5,3 @@ version: "0.1.0-SNAPSHOT"
 commands:
   connect4:
     description: Play connect4.
-  test:
-    description: test
