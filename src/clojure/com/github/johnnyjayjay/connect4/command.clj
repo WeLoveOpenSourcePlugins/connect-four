@@ -15,10 +15,11 @@
            (java.util UUID)
            (org.bukkit.event.inventory InventoryCloseEvent InventoryEvent InventoryInteractEvent InventoryClickEvent)
            (org.bukkit.event Cancellable)
-           (org.bukkit.inventory Inventory ItemStack)))
+           (org.bukkit.inventory Inventory)))
 
 (defonce requests (atom {}))
 
+;; just a bunch of Java methods turned into clojure functions for convenience
 (def player->uuid (memfn ^Player getUniqueId))
 (def player->name (memfn ^Player getName))
 
@@ -27,8 +28,7 @@
 (def event->inventory (memfn ^InventoryEvent getInventory))
 (def event->slot (memfn ^InventoryClickEvent getSlot))
 
-(defn cancel-event [^Cancellable event]
-  (.setCancelled event true))
+(defn cancel-event [^Cancellable event] (.setCancelled event true))
 
 (def send-message (memfn ^CommandSender sendMessage ^String message))
 (def open-inventory (memfn ^HumanEntity openInventory ^Inventory inventory))
@@ -67,7 +67,8 @@
         (runsync plugin
           (set-contents game-inventory new-inv-content))
         (case state
-          :tied (end-game! close-chan click-chan players "§aIt's a tie!")
+          :tied
+          (end-game! close-chan click-chan players "§aIt's a tie!")
 
           :won
           (let [{:keys [winner win-line]} assessment]
@@ -96,7 +97,7 @@
       (if-let [opponent (Bukkit/getPlayer name)]
         (do
           (swap! requests assoc (player->uuid opponent) (player->uuid sender))
-          (send-message opponent (str "§6" (player->name sender) "§a invited you to play connect four."))
+          (send-message opponent (str "§6" (player->name sender) "§a invited you to play connect four. Type §6/connect4 accept§a to accept."))
           (send-message sender (str "§aA request to play has been sent to §6" name "§a.")))
         (send-message sender (str "§cThe player §6" name "§c is not online.")))
 
