@@ -2,8 +2,7 @@
   (:gen-class
     :name com.github.johnnyjayjay.connect4.ConnectFourPlugin
     :extends com.github.johnnyjayjay.connect4.ClojurePlugin)
-  (:import (org.bukkit.command CommandSender)
-           (org.bukkit.plugin.java JavaPlugin)
+  (:import (org.bukkit.plugin.java JavaPlugin)
            (com.github.johnnyjayjay.connect4 Connect4Command)))
 
 (declare plugin)
@@ -14,7 +13,4 @@
 (defn -onEnable [^JavaPlugin this]
   (.. this (getCommand "connect4") (setExecutor (Connect4Command.)))
   (.. this (getLogger) (info "Clojure Plugin connect-four enabled!")))
-
-(defn -onCommand [this ^CommandSender sender command label args]
-  (.sendMessage sender "Hello from Clojure!"))
 

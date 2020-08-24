@@ -41,8 +41,8 @@
 
 (defn add-glow [item]
   (-> item
-      (assoc :enchants {Enchantment/SILK_TOUCH 1})
-      (assoc-in [:meta :flags] [ItemFlag/HIDE_ENCHANTS])))
+      (assoc-in [:meta :enchants Enchantment/SILK_TOUCH] (int 1))
+      (update-in [:meta :flags] conj ItemFlag/HIDE_ENCHANTS)))
 
 (defn prepare-items
   "Takes a game and associates relevant `ItemStack` objects for rendering."
