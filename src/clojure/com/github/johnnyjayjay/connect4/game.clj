@@ -41,45 +41,6 @@
         (assoc :last-player player))
     game))
 
-(defn valid-columns
-  "Returns the set of columns where discs can still be dropped in this game."
-  [{:keys [fields]}]
-  (->> fields
-       (map first)
-       (remove occupied?)
-       (map :position)
-       (map first)
-       (set)))
-
-(defn tied?
-  "Returns whether this game is a tie (no more moves can be made)."
-  [{:keys [fields]}]
-  (every? occupied? (flatten fields)))
-
-(defn win-line
-  "Given a `win-line-length` and a `line` of fields, returns the consecutive fields in the line that comprise a winning line or `nil` if none exists."
-  [win-line-length line]
-  (->> line
-       (partition-by :owner)
-       (filter (partial every? occupied?))
-       (filter (comp #{win-line-length} count))
-       first))
-
-(defn find-win-line
-  "Given a sequence of `lines` of fields, returns the first winning line according to the given `win-line-length` or `nil` if none exists."
-  [win-line-length lines]
-  (first (keep (partial win-line win-line-length) lines)))
-
-(defn vertical-win
-  "Returns a sequence of fields that comprise the vertical winning line in a game, or `nil` if there is no vertical win."
-  [{:keys [fields win-line-length]}]
-  (find-win-line win-line-length fields))
-
-(defn horizontal-win
-  "Returns a sequence of fields that comprise the horizontal winning line in a game, or `nil` if there is no horizontal win."
-  [{:keys [fields win-line-length height]}]
-  (find-win-line win-line-length (map #(map get % (range height)) fields)))
-
 (defn in-bounds?
   "Returns whether the given `[y x]` position is in bounds of the given `width` and `height`."
   [width height [y x]]
@@ -111,20 +72,54 @@
          (take-while (partial in-bounds? width height))
          (map (partial get-in fields)))))
 
-(defn diagonal-win
-  "Returns a sequence of fields that comprise the diagonal winning line in a game, or `nil` if there is no diagonal win."
-  [{:keys [fields win-line-length width height]}]
-  (find-win-line
-    win-line-length
-    (concat (diagonal-lines fields width height up-left->down-right)
-            (diagonal-lines fields width height up-right->down-left))))
+(defn columns
+  "Returns the columns in this game."
+  [{:keys [fields]}] fields)
+
+(defn rows
+  "Returns the rows in this game."
+  [{:keys [height fields]}]
+  (map (fn [row] (map get fields (repeat row))) (range height)))
+
+(defn diagonals
+  "Returns the diagonals in this game."
+  [{:keys [width height fields]}]
+  (concat (diagonal-lines fields width height up-left->down-right)
+          (diagonal-lines fields width height up-right->down-left)))
+
+(defn valid-columns
+  "Returns the set of columns where discs can still be dropped in this game."
+  [game]
+  (->> (columns game)
+       (map first)
+       (remove occupied?)
+       (map :position)
+       (map first)
+       (set)))
+
+(defn tied?
+  "Returns whether this game is a tie (no more moves can be made)."
+  [game]
+  (every? occupied? (map first (columns game))))
+
+(defn win-line
+  "Given a `win-line-length` and a `line` of fields, returns the consecutive fields in the line that comprise a winning line or `nil` if none exists."
+  [win-line-length line]
+  (->> line
+       (partition-by :owner)
+       (filter (partial every? occupied?))
+       (filter (comp #{win-line-length} count))
+       first))
+
+(defn find-win-line
+  "Given a sequence of `lines` of fields, returns the first winning line according to the given `win-line-length` or `nil` if none exists."
+  [win-line-length lines]
+  (first (keep (partial win-line win-line-length) lines)))
 
 (defn win
   "Returns a sequence of fields that comprise the winning line in a game, or `nil` if the game has not been won yet."
-  [game]
-  (or (vertical-win game)
-      (horizontal-win game)
-      (diagonal-win game)))
+  [{:keys [win-line-length] :as game}]
+  (some (partial find-win-line win-line-length) (map #(% game) [columns rows diagonals])))
 
 (defn assess
   "Returns information about the game's state.
